@@ -1,0 +1,30 @@
+1. Year wise AverageSales by Product Category for selected year.
+2. Monthly sale by selected products for Year 1996 .
+3. Top 10 employees by freight cost for selected year
+4. Country wise Product Category wise Average sales for selected employee for selected year.
+5. Monthly Sales for selected Product for Selected year
+6. Top 3 Products which has less orders
+
+Category w
+
+ise Sale- Done
+Average Sale per employee- Done
+Category wise Average Sale- Done
+Company wise Net Sale-
+Employee wise category wise sale - Done
+Average sale per order
+Average freight per customer
+Average freight per Employee
+Average sale per country- in progress
+
+
+New requirements-
+Ship Company wise sale
+
+
+
+
+	
+
+
+
