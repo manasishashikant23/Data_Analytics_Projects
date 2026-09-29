@@ -3,7 +3,7 @@
 ## Key Insights
 
 1. **Maharashtra Generated the Highest Profit**
-   Maharashtra emerged as the most profitable state, generating the highest overall profit among all states. **Madhya Pradesh** ranked second, indicating strong business performance and customer demand in these two markets.
+   Maharashtra emerged as the most profitable state, generating the highest overall profit among all states. **Madhya Pradesh** ranked second, indicating strong business performance.
 
 2. **Harivansh Was the Top Customer by Purchase Value**
    **Harivansh** was identified as the highest-value customer, with total purchases of approximately **₹10,000**. This indicates a significant contribution from this customer to overall sales revenue.
