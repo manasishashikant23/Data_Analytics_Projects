@@ -1,0 +1,201 @@
+--Doubts-
+
+--61-Names of customers to whom we are sellinng less than average sales per cusotmer-   Getting blank result
+--64-Query That Provides Month No and Month OF Total Sales < Average Sale for Month for Year 1997-   Month number is not printing
+--66-Give the Customer names that contribute 80% of the total sale done by Northwind for given year
+--68-Find the bottom 5 customers per product based on Sales Amount
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+--61-Names of customers to whom we are sellinng less than average sales per cusotmer
+With SalesAmount AS(
+Select Sum(OD.UnitPrice * OD.Quantity*(1-OD.Discount))SalesAmount
+From [Order Details] OD
+)
+Select C.ContactName, SA.SalesAmount, Sum(SA.SalesAmount) / COUNT (DISTINCT C.CustomerID) AvgSalePerCustomer
+From SalesAmount SA, Customers C
+Group By C.ContactName, SA.SalesAmount
+Having SalesAmount > Sum(SA.SalesAmount) / COUNT (DISTINCT C.CustomerID)
+
+--62-Query That Gives Average Freight Per Employee and Average Freight Per Customer
+WITH AvgFreightPerEmployee AS (
+    SELECT 
+        EmployeeID,
+        AVG(Freight) AS AVGFreightPerEmployee
+    FROM 
+        Orders
+    GROUP BY 
+        EmployeeID
+),
+AvgFreightPerCustomer AS (
+    SELECT 
+        CustomerID,
+        AVG(Freight) AS AVGFreightPerCustomer
+    FROM 
+        Orders
+    GROUP BY 
+        CustomerID
+)
+SELECT 
+    e.EmployeeID,
+    e.AVGFreightPerEmployee,
+    c.CustomerID,
+    c.AVGFreightPerCustomer
+FROM 
+    AvgFreightPerEmployee e
+CROSS JOIN 
+    AvgFreightPerCustomer c
+
+--63-Query That Gives Category Wise Total Sale Where Category Total Sale < the Average Sale Per Category
+With CategorySales AS(
+Select C.CategoryID, C.CategoryName, SUM(OD.UnitPrice * OD.Quantity*(1-OD.Discount)) CategoryTotalSale
+From Orders O
+Join [Order Details] OD On O.OrderID=OD.OrderID
+Join Products P On OD.ProductID=P.ProductID
+Join Categories C On P.CategoryID=C.CategoryID
+Group By C.CategoryID, C.CategoryName
+),
+AverageSales As(
+Select Avg(CS.CategoryTotalSale) AvgSalesPerCategory
+From CategorySales CS
+)
+Select *
+From CategorySales CS
+Cross Join AverageSales AvgS
+Where CS.CategoryTotalSale < AvgS.AvgSalesPerCategory
+
+--64-Query That Provides Month No and Month OF Total Sales < Average Sale for Month for Year 1997
+-- Month number is not printing
+With Sale1997 As(
+Select Month(O.OrderDate) SaleDate, SUM(OD.UnitPrice * OD.Quantity*(1-OD.Discount)) TotalSale
+From Orders O
+Join [Order Details] OD On O.OrderID=OD.OrderID
+Where Year(O.OrderDate)=1997
+Group by Month(O.OrderDate)
+),
+
+MonthlySales As(
+Select TotalSale, SaleDate
+From Sale1997
+),
+
+AverageMonthlySale AS(
+Select Avg(TotalSale) AvgSale, SaleDate
+From MonthlySales
+Group By SaleDate
+)
+
+Select MS.TotalSale
+From MonthlySales MS
+
+Cross Join AverageMonthlySale AvgS
+
+Where MS.TotalSale < AvgS.AvgSale
+
+--65-Find out the contribution of each employee towards the total sales done by Northwind for selected year
+With TotalSale AS(
+Select Sum(OD.UnitPrice * OD.Quantity*(1-OD.Discount))SalesAmount
+From [Order Details] OD
+)
+Select E.EmployeeID, E.FirstName+' '+E.LastName EmpName, Year(O.OrderDate) SelectedYear, Sum(SalesAmount)/ Count(distinct E.EmployeeID) SalePerEmp
+From TotalSale TS, Orders O
+Join Employees E On O.EmployeeID=E.EmployeeID
+Where Year(O.OrderDate) = 1996
+Group By E.EmployeeID, Year(O.OrderDate), E.FirstName+' '+E.LastName
+
+--66-Give the Customer names that contribute 80% of the total sale done by Northwind for given year
+WITH CustomerSales AS (
+    SELECT 
+        C.CustomerID,
+        C.CompanyName AS CustomerName,
+        SUM(OD.UnitPrice * OD.Quantity * (1 - OD.Discount)) AS TotalSales
+    FROM Orders O
+    JOIN [Order Details] OD ON O.OrderID = OD.OrderID
+    JOIN Customers C ON O.CustomerID = C.CustomerID
+    WHERE YEAR(O.OrderDate) = 1996
+    GROUP BY C.CustomerID, C.CompanyName
+),
+EachCustomerSale AS(
+Select C.CustomerID, C.ContactName,Sum(TotalSales)/ Count(Distinct C.CustomerID) SalePerCust, TotalSales
+From CustomerSales CSA, Customers C, Orders O
+Where Year(O.OrderDate)= 1996
+Group By C.CustomerID, Year(O.OrderDate), C.ContactName
+),
+CustomerSalesWithPercentage As(
+Select ECS.CustomerID, ECS.ContactName, ECS.TotalSales, ECS.TotalSales/ECS.SalePerCust SalePercentage 
+From EachCustomerSale ECS
+Cross Join CustomerSales CSA
+),
+CustomerSalesWithCumulativePercentage AS(
+Select CSWP.CustomerID, CSWP.ContactName, CSWP.TotalSales, CSWP.SalePercentage,
+Sum(SalePercentage) Over(Order By SalesAmount DESC) AS CumulativeSalesPercentage
+From CustomerSalesWithPercentage CSWP
+)
+Select *
+From CustomerSalesWithCumulativePercentage
+Where CumulativeSalesPercentage <= 0.8
+
+
+--67-Top 3 performing employees by freight cost for given year
+Select Top 3 E.EmployeeID, E.FirstName+' '+E.LastName EmployeeName, Sum(O.Freight) TotalFreightCost, O.OrderDate
+From Orders O
+Join Employees E On O.EmployeeID = E.EmployeeID
+Where Year(O.OrderDate)= 1998
+Group By E.EmployeeID, E.FirstName+' '+E.LastName, O.OrderDate
+Order By TotalFreightCost Desc
+
+--68-Find the bottom 5 customers per product based on Sales Amount
+WITH SalesPerCustomerProduct AS (
+Select P.ProductID, P.ProductName, C.CustomerID, C.CompanyName, SUM(OD.UnitPrice * OD.Quantity*(1-OD.Discount)) SaleAmount
+From Orders O
+Join [Order Details] OD On O.OrderID = O.OrderID
+Join Customers C On O.CustomerID= C.CustomerID
+Join Products P On OD.ProductID=P.ProductID
+Group By P.ProductID, P.ProductName, C.CustomerID, C.CompanyName
+),
+RankedSales AS (
+Select SPCP.ProductID, SPCP.CustomerID, SPCP.SaleAmount, SPCP.ProductName,
+DENSE_RANK() OVER (PARTITION BY SPCP.CustomerID ORDER BY SPCP.SaleAmount ASC) SalesRank
+From SalesPerCustomerProduct SPCP
+)
+Select RS.ProductID, RS.ProductName, RS.CustomerID, RS.SaleAmount, RS.SalesRank
+From RankedSales RS
+Where RS.SalesRank<=5
+Order By ProductName
+--Order By RS.ProductID, RS.SalesRank, RS.SaleAmount
+
+--69-Display first and the last row of the table
+Select Top 1 E.EmployeeID
+From Employees E
+Order By E.EmployeeID ASC
+
+Select Top 1 E.EmployeeID
+From Employees E
+Order By E.EmployeeID DESC
+
+--70-Display employee doing highest sale and lowest sale in each year
+With SalesData AS(
+Select E.EmployeeID, Sum(OD.UnitPrice * OD.Quantity*(1-OD.Discount)) SaleAmount, Year(O.OrderDate) SaleYear
+From Orders O
+Join Employees E On O.EmployeeID= E.EmployeeID
+Join [Order Details] OD On O.OrderID = OD.OrderID
+Group By E.EmployeeID, O.OrderDate
+),
+MaxSale AS(
+Select SD.SaleYear, MAX(SD.SaleAmount) MaxSaleAmount
+From SalesData SD
+Group BY SaleYear
+),
+MinSale AS(
+Select SD.SaleYear, MAX(SD.SaleAmount) MinSaleAmount
+From SalesData  SD
+Group BY SaleYear
+)
+Select SD1.SaleYear, SD1.EmployeeID, SD1.SaleAmount, 'Highest Sale' SaleType
+From SalesData SD1	
+Join MaxSale MS On SD1.SaleYear=MS.SaleYear AND SD1.SaleAmount=MS.MaxSaleAmount
+Union All
+Select SD2.SaleYear, SD2.EmployeeID, SD2.SaleAmount, 'Lower Sale' SaleType
+From SalesData SD2
+Join MinSale MS2 On SD2.SaleYear=MS2.SaleYear And SD2.SaleAmount= MS2.MinSaleAmount
+Order By SaleYear, SaleType
